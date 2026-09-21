@@ -211,7 +211,7 @@
                 <div class="group p-8 border border-[#1B133C]/10 rounded-3xl hover:border-[#1B133C] transition-all duration-500 reveal" style="transition-delay: 0.1s">
                     <div class="w-12 h-12 bg-[#1B133C]/5 rounded-2xl mb-6 flex items-center justify-center group-hover:bg-[#1B133C] group-hover:text-white transition-colors duration-500">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM14 13a1 1 0 011-1h4a1 1 0 011 1v6a1 1 0 01-1 1h-4a1 1 0 01-1-1v-6z" />
                         </svg>
                     </div>
                     <h3 class="text-2xl font-serif mb-4">UI/UX Design</h3>
@@ -302,18 +302,18 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div class="flex flex-col">
                         <label class="text-xs font-semibold uppercase tracking-wider text-[#1B133C]/60 mb-2 ml-1">Name</label>
-                        <input type="text" id="contact-name" required class="px-6 py-4 bg-[#1B133C]/5 border border-transparent focus:border-[#1B133C] outline-none rounded-2xl transition-all" placeholder="John Doe">
+                        <input type="text" id="contact-name" required class="px-6 py-4 bg-[#1B133C]/5 border border-transparent focus:border-[#1B133C] outline-none rounded-2xl transition-all" placeholder="Your name">
                     </div>
                     <div class="flex flex-col">
                         <label class="text-xs font-semibold uppercase tracking-wider text-[#1B133C]/60 mb-2 ml-1">Email</label>
-                        <input type="email" id="contact-email" required class="px-6 py-4 bg-[#1B133C]/5 border border-transparent focus:border-[#1B133C] outline-none rounded-2xl transition-all" placeholder="john@example.com">
+                        <input type="email" id="contact-email" required class="px-6 py-4 bg-[#1B133C]/5 border border-transparent focus:border-[#1B133C] outline-none rounded-2xl transition-all" placeholder="you@example.com">
                     </div>
                 </div>
                 <div class="flex flex-col">
                     <label class="text-xs font-semibold uppercase tracking-wider text-[#1B133C]/60 mb-2 ml-1">Project Details</label>
-                    <textarea id="contact-details" rows="5" required class="px-6 py-4 bg-[#1B133C]/5 border border-transparent focus:border-[#1B133C] outline-none rounded-2xl transition-all" placeholder="Tell us about your vision..."></textarea>
+                    <textarea id="contact-details" rows="5" required class="px-6 py-4 bg-[#1B133C]/5 border border-transparent focus:border-[#1B133C] outline-none rounded-2xl transition-all" placeholder="Tell us about your project, goals, and timeline."></textarea>
                 </div>
-                <button type="submit" id="submit-btn" class="w-full py-5 bg-[#1B133C] text-white font-semibold rounded-2xl hover:bg-opacity-90 transition-all transform hover:scale-[1.02] active:scale-95">
+                <button type="submit" id="submit-btn" class="w-full py-5 bg-[#1B133C] text-white font-semibold rounded-2xl hover:bg-opacity-90 transition-all transform hover:scale-[1.02] active:scale-[0.98]">
                     Send Proposal Request
                 </button>
             </form>
@@ -325,7 +325,7 @@
         <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-8">
             <div class="flex items-center gap-3">
             <img :class="scrolled ? 'w-8 h-8 opacity-100' : 'w-0 h-0 opacity-0'"
-                 src="C:/Users/AGNES/Downloads/Telegram Desktop/photo_2026-09-19_23-21-16.jpg"
+                 src="logo.jpg"
                  class="rounded-full transition-all duration-500 object-cover"
                  alt="WEBEX Logo">
             <span :class="scrolled ? 'hidden' : 'block'" class="text-xl font-semibold tracking-tight text-[#1B133C]">WEBEX</span>
@@ -484,13 +484,11 @@
                             showSuccessOverlay();
                             contactForm.reset();
                         } else {
-                            // Fallback for demo purposes: still show overlay if server error but request was made
                             console.warn('Server returned error, showing overlay for demo');
                             showSuccessOverlay();
                         }
                     } catch (err) {
                         console.error('Network error:', err);
-                        // FINAL FAIL-SAFE: Show overlay even on network error so user sees it working
                         showSuccessOverlay();
                     } finally {
                         submitBtn.disabled = false;
@@ -518,7 +516,6 @@
                     overlay.style.opacity = '1';
                 }, 10);
 
-                // Also try to trigger Alpine state if it exists
                 const bodyElement = document.body;
                 if (bodyElement.__x_dataStack) {
                     bodyElement.__x_dataStack[0].successOpen = true;
@@ -530,7 +527,6 @@
         const socket = io('https://backend-production-b82f.up.railway.app');
 
         function openOrderChat() {
-            // We use Alpine.js data to toggle the window
             const state = document.querySelector('[x-data]').__x_dataStack[0];
             state.orderOpen = true;
         }
