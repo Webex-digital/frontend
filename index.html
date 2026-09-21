@@ -115,7 +115,7 @@
     open: false,
     orderOpen: false,
     successOpen: false,
-    faqMessages: [{text: 'Hello! I\'m the Webex AI. Ask me anything about our services!', isUser: false}],
+    faqMessages: [{text: 'Hello! I\'m the Webex assistant. Ask me anything about our services!', isUser: false}],
     orderMessages: [{text: 'Welcome to our project onboarding! Let\'s build something amazing. Tell me about your vision.', isUser: false}],
     async sendFaq() {
         const input = document.getElementById('faq-input');
@@ -152,7 +152,7 @@
          class="fixed top-0 left-0 w-full z-50 transition-all duration-300 px-8 flex justify-between items-center">
         <div class="flex items-center gap-3">
             <img :class="scrolled ? 'w-8 h-8 opacity-100' : 'w-0 h-0 opacity-0'"
-                 src="C:/Users/AGNES/Downloads/Telegram Desktop/photo_2026-09-19_23-21-16.jpg"
+                 src="logo.jpg"
                  class="rounded-full transition-all duration-500 object-cover"
                  alt="WEBEX Logo">
             <span :class="scrolled ? 'hidden' : 'block'" class="text-xl font-semibold tracking-tight text-[#1B133C]">WEBEX</span>
