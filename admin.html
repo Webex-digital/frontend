@@ -109,91 +109,100 @@
     </div>
 
     <script>
+        const API_BASE = 'https://backend-production-b82f.up.railway.app';
+
         function adminPanel() {
             return {
                 socket: null,
-                adminId: 'ADMIN_USER', // In real app, this comes from JWT
+                adminId: null,
                 conversations: [],
                 selectedConvId: null,
                 selectedUser: null,
                 messages: [],
                 replyText: '',
 
-                async init() {
-                    this.socket = io('https://backend-production-b82f.up.railway.app');
-                    await this.fetchConversations();
+                get token() {
+                    return localStorage.getItem('access_token') || localStorage.getItem('token');
+                },
 
-                    this.socket.on('admin_notification', (data) => {
-                        this.notifyAdmin(data);
-                        this.fetchConversations();
+                async api(path, options = {}) {
+                    const response = await fetch(`${API_BASE}${path}`, {
+                        ...options,
+                        headers: {
+                            'Content-Type': 'application/json',
+                            Authorization: `Bearer ${this.token}`,
+                            ...(options.headers || {})
+                        }
                     });
+                    if (response.status === 401 || response.status === 403) {
+                        throw new Error('Admin access denied. Log in with an ADMIN account first.');
+                    }
+                    const data = await response.json().catch(() => null);
+                    if (!response.ok) throw new Error(data?.message || 'Request failed');
+                    return data;
+                },
+
+                async init() {
+                    if (!this.token) {
+                        alert('Open the login page and sign in with an ADMIN account before opening the admin panel.');
+                        return;
+                    }
+                    try {
+                        const currentUser = JSON.parse(localStorage.getItem('current_user') || '{}');
+                        this.adminId = currentUser.id || 'admin';
+                        this.socket = io(`${API_BASE}/chat`, {
+                            auth: { token: this.token },
+                            transports: ['websocket']
+                        });
+                        this.socket.on('connect_error', (error) => alert(`Chat connection failed: ${error.message}`));
+                        this.socket.on('message:new', (message) => {
+                            if (message.conversationId === this.selectedConvId && !this.messages.some((item) => item.id === message.id)) {
+                                this.messages.push(message);
+                                this.scrollToBottom();
+                            }
+                            this.fetchConversations();
+                        });
+                        await this.fetchConversations();
+                    } catch (error) {
+                        alert(error.message);
+                    }
                 },
 
                 async fetchConversations() {
-                    const res = await fetch('https://backend-production-b82f.up.railway.app/admin/conversations', {
-                        headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
-                    });
-                    if (res.ok) this.conversations = await res.json();
+                    try {
+                        this.conversations = await this.api('/admin/conversations');
+                    } catch (error) {
+                        alert(error.message);
+                    }
                 },
 
                 async selectConversation(conv) {
                     this.selectedConvId = conv.id;
                     this.selectedUser = conv.user;
-                    this.messages = [];
-
-                    const res = await fetch(`https://backend-production-b82f.up.railway.app:3000/admin/conversations/${conv.id}/history`, {
-                        headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
-                    });
-                    if (res.ok) {
-                        const data = await res.json();
-                        this.messages = data.messages;
-                    }
-
-                    this.socket.emit('join_conversation', {
-                        conversationId: conv.id,
-                        userId: this.adminId
-                    });
+                    this.messages = await this.api(`/admin/conversations/${conv.id}/history`);
+                    this.socket.emit('conversation:join', { conversationId: conv.id });
+                    this.scrollToBottom();
                 },
 
                 async sendReply() {
-                    if (!this.replyText.trim()) return;
-
-                    const content = this.replyText;
+                    const content = this.replyText.trim();
+                    if (!content || !this.selectedConvId) return;
                     this.replyText = '';
-
-                    this.socket.emit('admin_reply', {
+                    this.socket.emit('message:send', {
                         conversationId: this.selectedConvId,
-                        content: content,
-                        adminId: this.adminId
-                    }, (res) => {
-                        if (res.status === 'sent') {
-                            this.messages.push({
-                                id: res.messageId,
-                                content: content,
-                                senderId: this.adminId,
-                                createdAt: new Date()
-                            });
-                            this.scrollToBottom();
-                        }
+                        message: { content }
                     });
                 },
 
                 async resolveConversation() {
-                    await fetch(`https://backend-production-b82f.up.railway.app/admin/conversations/${this.selectedConvId}/status`, {
+                    await this.api(`/admin/conversations/${this.selectedConvId}/status`, {
                         method: 'PATCH',
-                        headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') },
                         body: JSON.stringify({ status: 'RESOLVED' })
                     });
                     this.selectedConvId = null;
-                    this.fetchConversations();
-                },
-
-                notifyAdmin(data) {
-                    if (Notification.permission === "granted") {
-                        new Notification("🚨 Urgent Help Needed", { body: data.message });
-                    } else {
-                        alert(`🚨 URGENT: User ${data.userId} needs help: ${data.message}`);
-                    }
+                    this.selectedUser = null;
+                    this.messages = [];
+                    await this.fetchConversations();
                 },
 
                 scrollToBottom() {
@@ -203,13 +212,8 @@
                     }, 100);
                 },
 
-                formatDate(d) {
-                    return new Date(d).toLocaleDateString();
-                },
-
-                formatTime(d) {
-                    return new Date(d).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                }
+                formatDate(d) { return new Date(d).toLocaleDateString(); },
+                formatTime(d) { return new Date(d).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); }
             }
         }
 

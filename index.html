@@ -123,9 +123,11 @@
         if (!text) return;
         this.faqMessages.push({text, isUser: true});
         input.value = '';
-        socket.emit('faq_message', { text }, (res) => {
-            this.faqMessages.push({text: res.answer || 'I am thinking...', isUser: false});
+        const res = await fetch('https://backend-production-b82f.up.railway.app/chat/ask', {
+            method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({question: text})
         });
+        const data = await res.json();
+        this.faqMessages.push({text: data.answer || 'I am thinking...', isUser: false});
     },
     async sendOrder() {
         const input = document.getElementById('order-input');
@@ -133,9 +135,11 @@
         if (!text) return;
         this.orderMessages.push({text, isUser: true});
         input.value = '';
-        socket.emit('order_message', { text }, (res) => {
-            this.orderMessages.push({text: res.answer || 'I am thinking...', isUser: false});
+        const res = await fetch('https://backend-production-b82f.up.railway.app/chat/ask', {
+            method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({question: text})
         });
+        const data = await res.json();
+        this.orderMessages.push({text: data.answer || 'I am thinking...', isUser: false});
     }
 }" @scroll.window="scrolled = (window.pageYOffset > 50)">
 
@@ -523,9 +527,6 @@
             }
         }
 
-        // Socket.io Integration
-        const socket = io('https://backend-production-b82f.up.railway.app');
-
         function openOrderChat() {
             const state = document.querySelector('[x-data]').__x_dataStack[0];
             state.orderOpen = true;
@@ -550,9 +551,13 @@
             appendMessage('faq-messages', text, true);
             input.value = '';
 
-            socket.emit('faq_message', { text: text }, (response) => {
-                appendMessage('faq-messages', response.answer, false);
+            const response = await fetch('https://backend-production-b82f.up.railway.app/chat/ask', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({question: text})
             });
+            const data = await response.json();
+            appendMessage('faq-messages', data.answer || 'I am thinking...', false);
         }
 
         async function sendOrderMessage() {
@@ -563,9 +568,13 @@
             appendMessage('order-messages', text, true);
             input.value = '';
 
-            socket.emit('order_message', { text: text }, (response) => {
-                appendMessage('order-messages', response.answer, false);
+            const response = await fetch('https://backend-production-b82f.up.railway.app/chat/ask', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({question: text})
             });
+            const data = await response.json();
+            appendMessage('order-messages', data.answer || 'I am thinking...', false);
         }
     </script>
 </body>
