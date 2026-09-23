@@ -165,7 +165,10 @@
                             this.fetchConversations();
                         });
                         await this.fetchConversations();
-                        this.refreshTimer = window.setInterval(() => this.fetchConversations(), 5000);
+                        this.refreshTimer = window.setInterval(() => {
+                            this.fetchConversations();
+                            if (this.selectedConvId) this.refreshSelectedMessages();
+                        }, 5000);
                     } catch (error) {
                         alert(error.message);
                     }
@@ -182,9 +185,22 @@
                 async selectConversation(conv) {
                     this.selectedConvId = conv.id;
                     this.selectedUser = conv.user;
-                    this.messages = await this.api(`/admin/conversations/${conv.id}/history`);
+                    await this.refreshSelectedMessages();
                     this.socket.emit('conversation:join', { conversationId: conv.id });
                     this.scrollToBottom();
+                },
+
+                async refreshSelectedMessages() {
+                    if (!this.selectedConvId) return;
+                    try {
+                        const latest = await this.api(`/admin/conversations/${this.selectedConvId}/history`);
+                        if (latest.length !== this.messages.length || latest.at(-1)?.id !== this.messages.at(-1)?.id) {
+                            this.messages = latest;
+                            this.scrollToBottom();
+                        }
+                    } catch (error) {
+                        console.error('Unable to refresh selected conversation:', error);
+                    }
                 },
 
                 async sendReply() {
