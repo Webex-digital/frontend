@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WEBEX — Premium Web Creation Agency</title>
+    <link rel="icon" type="image/jpeg" href="/logo.jpg">
+    <link rel="apple-touch-icon" href="/logo.jpg">
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
@@ -620,7 +622,11 @@
             }
         }
 
-        window.addEventListener('DOMContentLoaded', restoreAllChatHistory);
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', restoreAllChatHistory, { once: true });
+        } else {
+            restoreAllChatHistory();
+        }
     </script>
 </body>
 </html>
