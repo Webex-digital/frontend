@@ -541,6 +541,10 @@
             appendMessage('order-messages', message.content, false);
         });
 
+        function isGreeting(text) {
+            return /^(hi|hello|hey|hii|good morning|good afternoon|good evening|greetings)[!.,\s]*$/i.test(text.trim());
+        }
+
         function openOrderChat() {
             const state = document.querySelector('[x-data]').__x_dataStack[0];
             state.orderOpen = true;
@@ -594,7 +598,7 @@
             appendMessage('faq-messages', text, true);
             input.value = '';
 
-            if (window.webexHumanTakeover) {
+            if (window.webexHumanTakeover && !isGreeting(text)) {
                 appendMessage('faq-messages', 'Your message has been sent to our team. A WEBEX specialist will reply here shortly.', false);
                 return;
             }
@@ -623,7 +627,7 @@
             appendMessage('order-messages', text, true);
             input.value = '';
 
-            if (window.webexHumanTakeover) {
+            if (window.webexHumanTakeover && !isGreeting(text)) {
                 appendMessage('order-messages', 'Your message has been sent to our team. A WEBEX specialist will reply here shortly.', false);
                 return;
             }
