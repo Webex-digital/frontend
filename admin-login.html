@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WEBEX — Admin Login</title>
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <link rel="apple-touch-icon" href="/favicon.png">
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen bg-[#0F0B23] text-white flex items-center justify-center px-6">
+  <main class="w-full max-w-md bg-[#1B133C] border border-white/10 rounded-3xl p-8 shadow-2xl">
+    <div class="text-center mb-8">
+      <img src="/favicon.png" alt="WEBEX" class="w-20 h-20 rounded-full mx-auto mb-4">
+      <h1 class="text-3xl font-bold">WEBEX Admin</h1>
+      <p class="text-white/50 mt-2">Sign in to manage client conversations.</p>
+    </div>
+    <form id="login-form" class="space-y-5">
+      <label class="block text-sm text-white/70">Email / username
+        <input id="email" type="email" autocomplete="username" required class="mt-2 w-full rounded-xl bg-white/10 border border-white/10 px-4 py-3 outline-none focus:ring-2 ring-white/30" placeholder="admin@example.com">
+      </label>
+      <label class="block text-sm text-white/70">Password
+        <input id="password" type="password" autocomplete="current-password" required class="mt-2 w-full rounded-xl bg-white/10 border border-white/10 px-4 py-3 outline-none focus:ring-2 ring-white/30" placeholder="Your password">
+      </label>
+      <p id="error" class="hidden text-sm text-red-300"></p>
+      <button id="submit" class="w-full rounded-xl bg-white text-[#1B133C] font-bold py-3 hover:bg-white/90">Sign in</button>
+    </form>
+  </main>
+  <script>
+    const API_BASE = 'https://backend-production-b82f.up.railway.app';
+    const next = new URLSearchParams(location.search).get('next') || '/admin';
+    document.getElementById('login-form').addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const button = document.getElementById('submit');
+      const error = document.getElementById('error');
+      button.disabled = true;
+      button.textContent = 'Signing in...';
+      error.classList.add('hidden');
+      try {
+        const response = await fetch(`${API_BASE}/auth/login`, {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            email: document.getElementById('email').value.trim(),
+            password: document.getElementById('password').value
+          })
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data.message || 'Invalid username or password');
+        if (data.user?.role !== 'ADMIN') throw new Error('This account is not an admin account. Ask the owner to grant ADMIN access.');
+        localStorage.setItem('access_token', data.access_token);
+        localStorage.setItem('current_user', JSON.stringify(data.user));
+        location.href = next;
+      } catch (err) {
+        error.textContent = err.message;
+        error.classList.remove('hidden');
+      } finally {
+        button.disabled = false;
+        button.textContent = 'Sign in';
+      }
+    });
+  </script>
+</body>
+</html>

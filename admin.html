@@ -146,11 +146,17 @@
 
                 async init() {
                     if (!this.token) {
-                        alert('Open the login page and sign in with an ADMIN account before opening the admin panel.');
+                        window.location.replace('/admin-login?next=/admin');
+                        return;
+                    }
+                    const currentUser = JSON.parse(localStorage.getItem('current_user') || '{}');
+                    if (currentUser.role !== 'ADMIN') {
+                        localStorage.removeItem('access_token');
+                        localStorage.removeItem('token');
+                        window.location.replace('/admin-login?next=/admin');
                         return;
                     }
                     try {
-                        const currentUser = JSON.parse(localStorage.getItem('current_user') || '{}');
                         this.adminId = currentUser.id || 'admin';
                         this.socket = io(`${API_BASE}/chat`, {
                             auth: { token: this.token },
