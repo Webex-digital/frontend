@@ -29,6 +29,10 @@
   <script>
     const API_BASE = 'https://backend-production-b82f.up.railway.app';
     const next = new URLSearchParams(location.search).get('next') || '/admin';
+    // Always start a fresh admin login instead of reusing a stale phone session.
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('token');
+    localStorage.removeItem('current_user');
     document.getElementById('login-form').addEventListener('submit', async (event) => {
       event.preventDefault();
       const button = document.getElementById('submit');
