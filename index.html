@@ -531,18 +531,30 @@
         window.webexChatSession = localStorage.getItem('webex_chat_session') || crypto.randomUUID();
         localStorage.setItem('webex_chat_session', window.webexChatSession);
         window.webexHumanTakeover = false;
+        window.webexSeenStaffMessages = new Set();
         window.webexChatSocket = io('https://backend-production-b82f.up.railway.app/chat', {
             auth: { sessionId: window.webexChatSession },
             transports: ['websocket', 'polling']
         });
         window.webexChatSocket.on('message:new', (message) => {
             if (message.senderType !== 'STAFF') return;
-            window.webexHumanTakeover = true;
-            appendMessage('order-messages', message.content, false);
+            showStaffReply(message);
+            window.webexSeenStaffMessages.add(message.id);
         });
 
         function isGreeting(text) {
-            return /^(hi|hello|hey|hii|good morning|good afternoon|good evening|greetings)[!.,\s]*$/i.test(text.trim());
+            return /^(hi|hello|hey|hii|howdy|greetings|namaste|good morning|good afternoon|good evening|good day)\b/i.test(text.trim());
+        }
+
+        const instantGreeting = 'Hello! Welcome to WEBEX Digital. I can answer questions about our services, pricing, process, and timelines—or connect you with our team for a project conversation.';
+        }
+
+        function showStaffReply(message) {
+            if (window.webexSeenStaffMessages.has(message.id)) return;
+            window.webexHumanTakeover = true;
+            appendMessage('faq-messages', message.content, false);
+            appendMessage('order-messages', message.content, false);
+            window.webexSeenStaffMessages.add(message.id);
         }
 
         function openOrderChat() {
@@ -590,6 +602,19 @@
             restoreChatHistory('order-messages');
         }
 
+        async function pollStaffReplies() {
+            try {
+                const response = await fetch(`https://backend-production-b82f.up.railway.app/chat/visitor/${encodeURIComponent(window.webexChatSession)}/messages`);
+                if (!response.ok) return;
+                const messages = await response.json();
+                messages.filter((message) => message.senderType === 'STAFF').forEach(showStaffReply);
+            } catch (error) {
+                console.debug('Staff reply polling unavailable:', error);
+            }
+        }
+
+        window.setInterval(pollStaffReplies, 3000);
+
         async function sendFaqMessage() {
             const input = document.getElementById('faq-input');
             const text = input.value.trim();
@@ -597,6 +622,24 @@
 
             appendMessage('faq-messages', text, true);
             input.value = '';
+
+            if (isGreeting(text)) {
+                appendMessage('faq-messages', instantGreeting, false);
+                fetch('https://backend-production-b82f.up.railway.app/chat/ask', {
+                    method: 'POST', headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({question: text, sessionId: window.webexChatSession})
+                }).catch(console.error);
+                return;
+            }
+
+            if (isGreeting(text)) {
+                appendMessage('order-messages', instantGreeting, false);
+                fetch('https://backend-production-b82f.up.railway.app/chat/ask', {
+                    method: 'POST', headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({question: text, sessionId: window.webexChatSession})
+                }).catch(console.error);
+                return;
+            }
 
             if (window.webexHumanTakeover && !isGreeting(text)) {
                 appendMessage('faq-messages', 'Your message has been sent to our team. A WEBEX specialist will reply here shortly.', false);
