@@ -547,7 +547,6 @@
         }
 
         const instantGreeting = 'Hello! Welcome to WEBEX Digital. I can answer questions about our services, pricing, process, and timelines—or connect you with our team for a project conversation.';
-        }
 
         function showStaffReply(message) {
             if (window.webexSeenStaffMessages.has(message.id)) return;
@@ -632,15 +631,6 @@
                 return;
             }
 
-            if (isGreeting(text)) {
-                appendMessage('order-messages', instantGreeting, false);
-                fetch('https://backend-production-b82f.up.railway.app/chat/ask', {
-                    method: 'POST', headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({question: text, sessionId: window.webexChatSession})
-                }).catch(console.error);
-                return;
-            }
-
             if (window.webexHumanTakeover && !isGreeting(text)) {
                 appendMessage('faq-messages', 'Your message has been sent to our team. A WEBEX specialist will reply here shortly.', false);
                 return;
@@ -669,6 +659,15 @@
 
             appendMessage('order-messages', text, true);
             input.value = '';
+
+            if (isGreeting(text)) {
+                appendMessage('order-messages', instantGreeting, false);
+                fetch('https://backend-production-b82f.up.railway.app/chat/ask', {
+                    method: 'POST', headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({question: text, sessionId: window.webexChatSession})
+                }).catch(console.error);
+                return;
+            }
 
             if (window.webexHumanTakeover && !isGreeting(text)) {
                 appendMessage('order-messages', 'Your message has been sent to our team. A WEBEX specialist will reply here shortly.', false);
