@@ -557,6 +557,9 @@
             showStaffReply(message);
             window.webexSeenStaffMessages.add(message.id);
         });
+        window.webexChatSocket.on('connect', () => {
+            pollStaffReplies();
+        });
 
         function isGreeting(text) {
             return /^(hi|hello|hey|hii|howdy|greetings|namaste|good morning|good afternoon|good evening|good day)\b/i.test(text.trim());
@@ -660,7 +663,7 @@
 
         async function pollStaffReplies() {
             try {
-                const response = await fetch(`https://backend-production-b82f.up.railway.app/chat/visitor/${encodeURIComponent(window.webexChatSession)}/messages`);
+                const response = await fetch(`https://backend-production-b82f.up.railway.app/chat/visitor/${encodeURIComponent(window.webexChatSession)}/messages`, { cache: 'no-store' });
                 if (!response.ok) return;
                 const messages = await response.json();
                 messages.filter((message) => message.senderType === 'STAFF').forEach(showStaffReply);
@@ -669,7 +672,8 @@
             }
         }
 
-        window.setInterval(pollStaffReplies, 3000);
+        window.setInterval(pollStaffReplies, 1500);
+        window.setTimeout(pollStaffReplies, 500);
 
         async function sendFaqMessage() {
             const input = document.getElementById('faq-input');
@@ -684,6 +688,8 @@
                 fetch('https://backend-production-b82f.up.railway.app/chat/ask', {
                     method: 'POST', headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({question: text, sessionId: window.webexChatSession})
+                }).then((response) => response.json()).then((data) => {
+                    if (data.conversationId) window.webexChatSocket.emit('conversation:join', { conversationId: data.conversationId });
                 }).catch(console.error);
                 return;
             }
@@ -691,6 +697,12 @@
             if (window.webexHumanTakeover && !isGreeting(text)) {
                 appendMessage('faq-messages', 'Your message has been sent to our team. A WEBEX specialist will reply here shortly.', false);
                 setStaffTyping(true);
+                fetch('https://backend-production-b82f.up.railway.app/chat/ask', {
+                    method: 'POST', headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({question: text, sessionId: window.webexChatSession})
+                }).then((response) => response.json()).then((data) => {
+                    if (data.conversationId) window.webexChatSocket.emit('conversation:join', { conversationId: data.conversationId });
+                }).catch(console.error);
                 return;
             }
             try {
@@ -729,6 +741,8 @@
                 fetch('https://backend-production-b82f.up.railway.app/chat/ask', {
                     method: 'POST', headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({question: text, sessionId: window.webexChatSession})
+                }).then((response) => response.json()).then((data) => {
+                    if (data.conversationId) window.webexChatSocket.emit('conversation:join', { conversationId: data.conversationId });
                 }).catch(console.error);
                 return;
             }
@@ -736,6 +750,12 @@
             if (window.webexHumanTakeover && !isGreeting(text)) {
                 appendMessage('order-messages', 'Your message has been sent to our team. A WEBEX specialist will reply here shortly.', false);
                 setStaffTyping(true);
+                fetch('https://backend-production-b82f.up.railway.app/chat/ask', {
+                    method: 'POST', headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({question: text, sessionId: window.webexChatSession})
+                }).then((response) => response.json()).then((data) => {
+                    if (data.conversationId) window.webexChatSocket.emit('conversation:join', { conversationId: data.conversationId });
+                }).catch(console.error);
                 return;
             }
             try {
