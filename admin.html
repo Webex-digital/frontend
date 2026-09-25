@@ -28,11 +28,15 @@
                         <h1 class="font-serif text-2xl md:text-3xl text-white">Webex Admin</h1>
                         <p class="text-xs text-white/50 mt-1 uppercase tracking-widest">Conversation Management</p>
                     </div>
-                    <span class="rounded-full bg-emerald-400/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-emerald-300">Online</span>
+                    <div class="flex items-center gap-2">
+                        <button @click="fetchConversations()" class="rounded-full bg-white/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-white/70 hover:bg-white/20" :class="refreshing ? 'animate-pulse' : ''">Refresh</button>
+                        <span class="rounded-full bg-emerald-400/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-emerald-300">Online</span>
+                    </div>
                 </div>
             </div>
 
             <div class="min-h-0 flex-1 overflow-y-auto custom-scrollbar p-3 md:p-4 space-y-2 md:space-y-3">
+                <p x-show="inboxError" x-text="inboxError" class="rounded-xl bg-red-400/10 px-3 py-2 text-xs text-red-200"></p>
                 <template x-for="conv in conversations" :key="conv.id">
                     <div @click="selectConversation(conv)"
                          :class="selectedConvId === conv.id ? 'bg-white/10 border-white/20' : 'bg-transparent border-transparent hover:bg-white/5'"
@@ -77,6 +81,10 @@
 
                     <!-- Messages List -->
                     <div id="chat-window" class="min-h-0 flex-1 overflow-y-auto p-4 md:p-6 space-y-3 md:space-y-4 custom-scrollbar">
+                        <div x-show="incomingPulse" class="flex items-center gap-2 text-xs text-white/50" x-transition>
+                            <span class="flex gap-1"><i class="h-1.5 w-1.5 animate-bounce rounded-full bg-emerald-300"></i><i class="h-1.5 w-1.5 animate-bounce rounded-full bg-emerald-300 [animation-delay:120ms]"></i><i class="h-1.5 w-1.5 animate-bounce rounded-full bg-emerald-300 [animation-delay:240ms]"></i></span>
+                            New client message arriving…
+                        </div>
                         <template x-for="msg in messages" :key="msg.id">
                             <div :class="msg.senderId === adminId ? 'flex justify-end' : 'flex justify-start'">
                                 <div :class="msg.senderId === adminId ? 'bg-[#1B133C] text-white rounded-tr-none' : 'bg-white/5 text-white/90 rounded-tl-none'"
@@ -95,7 +103,7 @@
                                    type="text" placeholder="Type your professional reply..."
                                    class="min-w-0 flex-1 bg-white/5 border border-white/10 rounded-2xl px-4 md:px-6 py-3 md:py-4 text-sm md:text-base text-white outline-none focus:ring-2 ring-white/20 transition-all">
                             <button @click="sendReply()" class="shrink-0 px-4 md:px-6 py-3 md:py-4 bg-white text-[#1B133C] font-bold text-sm rounded-2xl hover:bg-opacity-90 transition-all active:scale-95">
-                                Send
+                                <span x-show="!sending">Send</span><span x-show="sending" class="inline-flex items-center gap-2"><span class="h-2 w-2 animate-ping rounded-full bg-[#1B133C]"></span>Sending…</span>
                             </button>
                         </div>
                     </div>
@@ -128,6 +136,10 @@
                 selectedUser: null,
                 messages: [],
                 replyText: '',
+                refreshing: false,
+                inboxError: '',
+                incomingPulse: false,
+                sending: false,
 
                 get token() {
                     return localStorage.getItem('access_token') || localStorage.getItem('token');
@@ -174,6 +186,10 @@
                         });
                         this.socket.on('connect_error', (error) => alert(`Chat connection failed: ${error.message}`));
                         this.socket.on('message:new', (message) => {
+                            if (message.senderType === 'USER') {
+                                this.incomingPulse = true;
+                                window.setTimeout(() => { this.incomingPulse = false; }, 900);
+                            }
                             if (message.conversationId === this.selectedConvId && !this.messages.some((item) => item.id === message.id)) {
                                 this.messages.push(message);
                                 this.scrollToBottom();
@@ -191,10 +207,14 @@
                 },
 
                 async fetchConversations() {
+                    this.refreshing = true;
+                    this.inboxError = '';
                     try {
                         this.conversations = await this.api('/admin/conversations');
                     } catch (error) {
-                        alert(error.message);
+                        this.inboxError = error.message;
+                    } finally {
+                        this.refreshing = false;
                     }
                 },
 
@@ -221,12 +241,14 @@
 
                 async sendReply() {
                     const content = this.replyText.trim();
-                    if (!content || !this.selectedConvId) return;
+                    if (!content || !this.selectedConvId || this.sending) return;
                     this.replyText = '';
+                    this.sending = true;
                     this.socket.emit('message:send', {
                         conversationId: this.selectedConvId,
                         message: { content }
-                    });
+                    }, () => { this.sending = false; });
+                    window.setTimeout(() => { this.sending = false; }, 5000);
                 },
 
                 async resolveConversation() {
