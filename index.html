@@ -123,6 +123,7 @@
     scrolled: false,
     open: false,
     orderOpen: false,
+    mobileMenu: false,
     successOpen: false,
     faqMessages: [{text: 'Hello! I\'m the Webex assistant. Ask me anything about our services!', isUser: false}],
     orderMessages: [{text: 'Welcome to our project onboarding! Let\'s build something amazing. Tell me about your vision.', isUser: false}],
@@ -177,10 +178,18 @@
             <a href="#contact" class="bg-[#1B133C] text-white px-5 py-2 rounded-full hover:bg-opacity-90 transition-all">Start a Project</a>
         </div>
         <!-- Mobile Menu Toggle -->
-        <div class="md:hidden text-[#1B133C]">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" />
+        <button type="button" @click="mobileMenu = !mobileMenu" :aria-expanded="mobileMenu.toString()" aria-label="Toggle navigation menu"
+                class="md:hidden relative z-10 flex h-11 w-11 items-center justify-center rounded-full text-[#1B133C] hover:bg-[#1B133C]/10 focus:outline-none focus:ring-2 focus:ring-[#1B133C]/30">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24">
+                <path stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16m-7 6h7" />
             </svg>
+        </button>
+        <div x-show="mobileMenu" x-transition @click.outside="mobileMenu = false"
+             class="absolute right-4 top-full mt-3 w-64 rounded-3xl border border-[#1B133C]/10 bg-[#F5F0E6]/95 p-3 shadow-2xl backdrop-blur-md md:hidden" style="display: none;">
+            <a @click="mobileMenu = false" href="#services" class="block rounded-2xl px-4 py-3 text-sm font-medium text-[#1B133C] hover:bg-[#1B133C]/10">Services</a>
+            <a @click="mobileMenu = false" href="#about" class="block rounded-2xl px-4 py-3 text-sm font-medium text-[#1B133C] hover:bg-[#1B133C]/10">About</a>
+            <a @click="mobileMenu = false" href="#process" class="block rounded-2xl px-4 py-3 text-sm font-medium text-[#1B133C] hover:bg-[#1B133C]/10">Process</a>
+            <a @click="mobileMenu = false" href="#contact" class="mt-2 block rounded-2xl bg-[#1B133C] px-4 py-3 text-center text-sm font-semibold text-white">Start a Project</a>
         </div>
     </nav>
 
