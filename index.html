@@ -675,6 +675,32 @@
         window.setInterval(pollStaffReplies, 1500);
         window.setTimeout(pollStaffReplies, 500);
 
+        async function deliverVisitorMessage(text) {
+            const body = JSON.stringify({ question: text, sessionId: window.webexChatSession });
+            let lastError;
+            for (let attempt = 0; attempt < 3; attempt += 1) {
+                try {
+                    const response = await fetch('https://backend-production-b82f.up.railway.app/chat/ask', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        cache: 'no-store',
+                        keepalive: true,
+                        body
+                    });
+                    if (!response.ok) throw new Error(`Chat request failed (${response.status})`);
+                    const data = await response.json();
+                    if (data.conversationId) {
+                        window.webexChatSocket.emit('conversation:join', { conversationId: data.conversationId });
+                    }
+                    return data;
+                } catch (error) {
+                    lastError = error;
+                    if (attempt < 2) await new Promise((resolve) => setTimeout(resolve, 700 * (attempt + 1)));
+                }
+            }
+            throw lastError || new Error('Unable to deliver chat message');
+        }
+
         async function sendFaqMessage() {
             const input = document.getElementById('faq-input');
             const text = input.value.trim();
@@ -685,36 +711,25 @@
 
             if (isGreeting(text)) {
                 appendMessage('faq-messages', instantGreeting, false);
-                fetch('https://backend-production-b82f.up.railway.app/chat/ask', {
-                    method: 'POST', headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({question: text, sessionId: window.webexChatSession})
-                }).then((response) => response.json()).then((data) => {
-                    if (data.conversationId) window.webexChatSocket.emit('conversation:join', { conversationId: data.conversationId });
-                }).catch(console.error);
+                deliverVisitorMessage(text).catch((error) => {
+                    appendMessage('faq-messages', 'Your message could not be delivered yet. Please tap send again.', false);
+                    console.error('Unable to deliver greeting:', error);
+                });
                 return;
             }
 
             if (window.webexHumanTakeover && !isGreeting(text)) {
                 appendMessage('faq-messages', 'Your message has been sent to our team. A WEBEX specialist will reply here shortly.', false);
                 setStaffTyping(true);
-                fetch('https://backend-production-b82f.up.railway.app/chat/ask', {
-                    method: 'POST', headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({question: text, sessionId: window.webexChatSession})
-                }).then((response) => response.json()).then((data) => {
-                    if (data.conversationId) window.webexChatSocket.emit('conversation:join', { conversationId: data.conversationId });
-                }).catch(console.error);
+                deliverVisitorMessage(text).catch((error) => {
+                    appendMessage('order-messages', 'Your message could not be delivered yet. Please tap send again.', false);
+                    console.error('Unable to deliver greeting:', error);
+                });
                 return;
             }
             try {
                 setAiTyping(true, 'faq-messages');
-                const response = await fetch('https://backend-production-b82f.up.railway.app/chat/ask', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({question: text, sessionId: window.webexChatSession})
-                });
-                if (!response.ok) throw new Error(`Chat request failed (${response.status})`);
-                const data = await response.json();
-                if (data.conversationId) window.webexChatSocket.emit('conversation:join', { conversationId: data.conversationId });
+                const data = await deliverVisitorMessage(text);
                 setAiTyping(false, 'faq-messages');
                 if (data.mode === 'team') {
                     window.webexHumanTakeover = true;
@@ -738,36 +753,25 @@
 
             if (isGreeting(text)) {
                 appendMessage('order-messages', instantGreeting, false);
-                fetch('https://backend-production-b82f.up.railway.app/chat/ask', {
-                    method: 'POST', headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({question: text, sessionId: window.webexChatSession})
-                }).then((response) => response.json()).then((data) => {
-                    if (data.conversationId) window.webexChatSocket.emit('conversation:join', { conversationId: data.conversationId });
-                }).catch(console.error);
+                deliverVisitorMessage(text).catch((error) => {
+                    appendMessage('faq-messages', 'Your message could not be delivered yet. Please tap send again.', false);
+                    console.error('Unable to deliver team message:', error);
+                });
                 return;
             }
 
             if (window.webexHumanTakeover && !isGreeting(text)) {
                 appendMessage('order-messages', 'Your message has been sent to our team. A WEBEX specialist will reply here shortly.', false);
                 setStaffTyping(true);
-                fetch('https://backend-production-b82f.up.railway.app/chat/ask', {
-                    method: 'POST', headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({question: text, sessionId: window.webexChatSession})
-                }).then((response) => response.json()).then((data) => {
-                    if (data.conversationId) window.webexChatSocket.emit('conversation:join', { conversationId: data.conversationId });
-                }).catch(console.error);
+                deliverVisitorMessage(text).catch((error) => {
+                    appendMessage('order-messages', 'Your message could not be delivered yet. Please tap send again.', false);
+                    console.error('Unable to deliver team message:', error);
+                });
                 return;
             }
             try {
                 setAiTyping(true, 'order-messages');
-                const response = await fetch('https://backend-production-b82f.up.railway.app/chat/ask', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({question: text, sessionId: window.webexChatSession})
-                });
-                if (!response.ok) throw new Error(`Chat request failed (${response.status})`);
-                const data = await response.json();
-                if (data.conversationId) window.webexChatSocket.emit('conversation:join', { conversationId: data.conversationId });
+                const data = await deliverVisitorMessage(text);
                 setAiTyping(false, 'order-messages');
                 if (data.mode === 'team') {
                     window.webexHumanTakeover = true;
