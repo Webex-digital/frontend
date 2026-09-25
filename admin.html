@@ -30,7 +30,7 @@
                     </div>
                     <div class="flex items-center gap-2">
                         <button @click="fetchConversations()" class="rounded-full bg-white/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-white/70 hover:bg-white/20" :class="refreshing ? 'animate-pulse' : ''">Refresh</button>
-                        <span class="rounded-full bg-emerald-400/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-emerald-300">Online</span>
+                        <span class="rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-wider" :class="connectionError ? 'bg-amber-400/10 text-amber-200' : 'bg-emerald-400/10 text-emerald-300'" x-text="connectionError || 'Online'"></span>
                     </div>
                 </div>
             </div>
@@ -147,6 +147,7 @@
                 inboxError: '',
                 incomingPulse: false,
                 sending: false,
+                connectionError: '',
 
                 get token() {
                     return localStorage.getItem('access_token') || localStorage.getItem('token');
@@ -189,9 +190,14 @@
                         this.adminId = currentUser.id || 'admin';
                         this.socket = io(`${API_BASE}/chat`, {
                             auth: { token: this.token },
-                            transports: ['websocket']
+                            transports: ['websocket', 'polling'],
+                            upgrade: true,
+                            reconnection: true,
+                            reconnectionAttempts: Infinity,
+                            reconnectionDelay: 1000,
                         });
-                        this.socket.on('connect_error', (error) => alert(`Chat connection failed: ${error.message}`));
+                        this.socket.on('connect', () => { this.connectionError = ''; });
+                        this.socket.on('connect_error', () => { this.connectionError = 'Reconnecting…'; });
                         this.socket.on('message:new', (message) => {
                             if (message.senderType === 'USER') {
                                 this.incomingPulse = true;
