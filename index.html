@@ -47,6 +47,13 @@
             background-color: #1B133C;
             transition: width 0.3s ease;
         }
+        @keyframes webex-orbit { from { transform: rotate(0deg) translateX(5px) rotate(0deg); } to { transform: rotate(360deg) translateX(5px) rotate(-360deg); } }
+        @keyframes webex-pulse { 0%, 100% { opacity: .35; transform: scale(.85); } 50% { opacity: 1; transform: scale(1); } }
+        .webex-reply-orbit { animation: webex-orbit 2.4s linear infinite; transform-origin: 50% 50%; }
+        .webex-reply-dot { animation: webex-pulse 1.2s ease-in-out infinite; }
+        .webex-reply-dot:nth-child(2) { animation-delay: .18s; }
+        .webex-reply-dot:nth-child(3) { animation-delay: .36s; }
+        @media (prefers-reduced-motion: reduce) { .webex-reply-orbit, .webex-reply-dot { animation: none; } }
         .nav-link:hover::after {
             width: 100%;
         }
@@ -550,10 +557,33 @@
 
         function showStaffReply(message) {
             if (window.webexSeenStaffMessages.has(message.id)) return;
+            setStaffTyping(false);
             window.webexHumanTakeover = true;
             appendMessage('faq-messages', message.content, false);
             appendMessage('order-messages', message.content, false);
             window.webexSeenStaffMessages.add(message.id);
+        }
+
+        function setStaffTyping(isVisible) {
+            ['faq-messages', 'order-messages'].forEach((divId) => {
+                const container = document.getElementById(divId);
+                if (!container) return;
+                const existing = container.querySelector('.webex-typing');
+                if (!isVisible) {
+                    existing?.remove();
+                    return;
+                }
+                if (existing) return;
+                const indicator = document.createElement('div');
+                indicator.className = 'webex-typing flex items-center gap-3 bg-[#1B133C]/5 p-3 rounded-2xl rounded-tl-none max-w-[92%] text-left';
+                indicator.innerHTML = `
+                    <span class="relative flex h-7 w-7 items-center justify-center rounded-full bg-[#1B133C] text-[9px] font-bold text-white">
+                        <span class="webex-reply-orbit absolute h-2 w-2 rounded-full bg-[#E7C873]"></span>W
+                    </span>
+                    <span class="text-xs text-[#1B133C]/65"><strong class="text-[#1B133C]">WEBEX is on it</strong><br>Our specialist is shaping a reply<span class="ml-1 inline-flex gap-0.5 align-middle"><i class="webex-reply-dot h-1 w-1 rounded-full bg-[#1B133C]/70"></i><i class="webex-reply-dot h-1 w-1 rounded-full bg-[#1B133C]/70"></i><i class="webex-reply-dot h-1 w-1 rounded-full bg-[#1B133C]/70"></i></span></span>`;
+                container.appendChild(indicator);
+                container.scrollTop = container.scrollHeight;
+            });
         }
 
         function openOrderChat() {
@@ -576,7 +606,7 @@
         function saveChatHistory(divId) {
             const div = document.getElementById(divId);
             if (!div) return;
-            const messages = Array.from(div.children).map((message) => ({
+            const messages = Array.from(div.children).filter((message) => !message.classList.contains('webex-typing')).map((message) => ({
                 text: message.innerText,
                 isUser: message.classList.contains('bg-[#1B133C]') && message.classList.contains('text-white')
             }));
@@ -633,6 +663,7 @@
 
             if (window.webexHumanTakeover && !isGreeting(text)) {
                 appendMessage('faq-messages', 'Your message has been sent to our team. A WEBEX specialist will reply here shortly.', false);
+                setStaffTyping(true);
                 return;
             }
             try {
@@ -644,7 +675,10 @@
                 if (!response.ok) throw new Error(`Chat request failed (${response.status})`);
                 const data = await response.json();
                 if (data.conversationId) window.webexChatSocket.emit('conversation:join', { conversationId: data.conversationId });
-                if (data.mode === 'team') window.webexHumanTakeover = true;
+                if (data.mode === 'team') {
+                    window.webexHumanTakeover = true;
+                    setStaffTyping(true);
+                }
                 appendMessage('faq-messages', data.answer || 'I am thinking...', false);
             } catch (error) {
                 appendMessage('faq-messages', 'I could not reach the assistant right now. Please try again or send us a project request.', false);
@@ -671,6 +705,7 @@
 
             if (window.webexHumanTakeover && !isGreeting(text)) {
                 appendMessage('order-messages', 'Your message has been sent to our team. A WEBEX specialist will reply here shortly.', false);
+                setStaffTyping(true);
                 return;
             }
             try {
@@ -682,7 +717,10 @@
                 if (!response.ok) throw new Error(`Chat request failed (${response.status})`);
                 const data = await response.json();
                 if (data.conversationId) window.webexChatSocket.emit('conversation:join', { conversationId: data.conversationId });
-                if (data.mode === 'team') window.webexHumanTakeover = true;
+                if (data.mode === 'team') {
+                    window.webexHumanTakeover = true;
+                    setStaffTyping(true);
+                }
                 appendMessage('order-messages', data.answer || 'I am thinking...', false);
             } catch (error) {
                 appendMessage('order-messages', 'I could not reach the assistant right now. Please try again or ask our team through the project form.', false);
