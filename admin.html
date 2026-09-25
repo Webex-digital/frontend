@@ -43,12 +43,18 @@
                          class="p-4 rounded-2xl border cursor-pointer transition-all duration-200 group">
                         <div class="flex justify-between items-start mb-1">
                             <span class="font-semibold text-white" x-text="conv.user?.fullName || conv.user?.email"></span>
-                            <span class="text-[10px] text-white/40" x-text="formatDate(conv.updatedAt)"></span>
+                            <span class="text-[10px] text-white/40" x-text="relativeTime(conv.updatedAt)"></span>
                         </div>
                         <p class="text-sm text-white/60 truncate" x-text="conv.messages[0]?.content || 'No messages yet...'"></p>
-                        <div class="mt-2 flex items-center gap-2">
-                            <span class="w-2 h-2 rounded-full bg-green-500"></span>
-                            <span class="text-[10px] uppercase tracking-tighter text-white/40">Active</span>
+                        <div class="mt-2 flex items-center justify-between gap-2">
+                            <div class="flex items-center gap-2">
+                                <span class="w-2 h-2 rounded-full" :class="isRecentlyActive(conv) ? 'bg-green-400 animate-pulse' : 'bg-white/25'"></span>
+                                <span class="text-[10px] uppercase tracking-tighter" :class="isRecentlyActive(conv) ? 'text-green-300' : 'text-white/40'" x-text="isRecentlyActive(conv) ? 'Active' : 'Open'"></span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span x-show="unreadCount(conv) > 0" x-text="unreadCount(conv) > 9 ? '9+' : unreadCount(conv)" class="min-w-5 rounded-full bg-[#E7C873] px-1.5 py-0.5 text-center text-[10px] font-bold text-[#1B133C]"></span>
+                                <span x-show="unreadCount(conv) === 0" class="text-[10px] text-white/30">Viewed</span>
+                            </div>
                         </div>
                     </div>
                 </template>
@@ -136,6 +142,7 @@
                 selectedUser: null,
                 messages: [],
                 replyText: '',
+                viewedVersion: 0,
                 refreshing: false,
                 inboxError: '',
                 incomingPulse: false,
@@ -219,6 +226,7 @@
                 },
 
                 async selectConversation(conv) {
+                    this.markViewed(conv);
                     this.selectedConvId = conv.id;
                     this.selectedUser = conv.user;
                     await this.refreshSelectedMessages();
@@ -266,6 +274,31 @@
                     this.selectedConvId = null;
                     this.selectedUser = null;
                     this.messages = [];
+                },
+
+                markViewed(conv) {
+                    const latest = conv.messages?.[0]?.createdAt || conv.updatedAt || new Date().toISOString();
+                    localStorage.setItem(`webex_admin_viewed_${conv.id}`, latest);
+                    this.viewedVersion += 1;
+                },
+
+                unreadCount(conv) {
+                    void this.viewedVersion;
+                    const viewedAt = Date.parse(localStorage.getItem(`webex_admin_viewed_${conv.id}`) || '1970-01-01');
+                    return (conv.messages || []).filter((message) => message.senderType === 'USER' && Date.parse(message.createdAt) > viewedAt).length;
+                },
+
+                isRecentlyActive(conv) {
+                    return Date.now() - Date.parse(conv.updatedAt) < 10 * 60 * 1000;
+                },
+
+                relativeTime(value) {
+                    const minutes = Math.max(0, Math.floor((Date.now() - Date.parse(value)) / 60000));
+                    if (minutes < 1) return 'now';
+                    if (minutes < 60) return `${minutes}m`;
+                    const hours = Math.floor(minutes / 60);
+                    if (hours < 24) return `${hours}h`;
+                    return this.formatDate(value);
                 },
 
                 scrollToBottom() {
